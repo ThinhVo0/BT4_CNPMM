@@ -7,6 +7,7 @@ import Login from './pages/login.jsx';
 import Register from './pages/register.jsx';
 import ForgotPassword from './pages/forgotPassword.jsx';
 import ResetPassword from './pages/resetPassword.jsx';
+import Products from './pages/Products.jsx';
 
 const App = () => {
   const { isAuthenticated, loading } = useContext(AuthContext);
@@ -22,6 +23,8 @@ const App = () => {
         <Route path="/register" element={!isAuthenticated ? <Register /> : <Navigate to="/" />} />
         <Route path="/forgot-password" element={!isAuthenticated ? <ForgotPassword /> : <Navigate to="/" />} />
         <Route path="/reset-password/:token" element={!isAuthenticated ? <ResetPassword /> : <Navigate to="/" />} />
+        <Route path="/products" element={isAuthenticated ? <Products /> : <Navigate to="/login" />} />
+        <Route path="/products/category/:categoryId" element={isAuthenticated ? <Products /> : <Navigate to="/login" />} />
       </Routes>
     </>
   );

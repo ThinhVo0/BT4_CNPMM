@@ -1,6 +1,6 @@
-import { createUser, loginUser, forgotPassword, resetPassword, getUser } from '../services/userService.js';
+const { createUser, loginUser, forgotPassword, resetPassword, getUser } = require('../services/userService.js');
 
-export const handleCreateUser = async (req, res) => {
+const handleCreateUser = async (req, res) => {
   try {
     const user = await createUser(req.body);
     res.status(201).json({ message: 'User created', user });
@@ -9,7 +9,7 @@ export const handleCreateUser = async (req, res) => {
   }
 };
 
-export const handleLogin = async (req, res) => {
+const handleLogin = async (req, res) => {
   try {
     const data = await loginUser(req.body);
     res.status(200).json(data);
@@ -18,7 +18,7 @@ export const handleLogin = async (req, res) => {
   }
 };
 
-export const handleForgotPassword = async (req, res) => {
+const handleForgotPassword = async (req, res) => {
   try {
     const data = await forgotPassword(req.body.email);
     res.status(200).json(data);
@@ -27,7 +27,7 @@ export const handleForgotPassword = async (req, res) => {
   }
 };
 
-export const handleResetPassword = async (req, res) => {
+const handleResetPassword = async (req, res) => {
   try {
     const data = await resetPassword(req.params.token, req.body.password);
     res.status(200).json(data);
@@ -36,11 +36,19 @@ export const handleResetPassword = async (req, res) => {
   }
 };
 
-export const getAccount = async (req, res) => {
+const getAccount = async (req, res) => {
   try {
     const user = await getUser(req.user.id);
     res.status(200).json(user);
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
+};
+
+module.exports = { 
+  handleCreateUser, 
+  handleLogin, 
+  handleForgotPassword, 
+  handleResetPassword, 
+  getAccount 
 };

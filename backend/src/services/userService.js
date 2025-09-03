@@ -1,12 +1,12 @@
-import User from '../models/user.js';
-import bcrypt from 'bcrypt';
-import jwt from 'jsonwebtoken';
-import nodemailer from 'nodemailer';
-import crypto from 'crypto';  // Để tạo random token
+const User = require('../models/user.js');
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
+const nodemailer = require('nodemailer');
+const crypto = require('crypto');  // Để tạo random token
 
 const saltRounds = 10;
 
-export const createUser = async (data) => {
+const createUser = async (data) => {
   const existingUser = await User.findOne({ email: data.email });
   if (existingUser) throw new Error('Email already exists');
   const hashedPassword = await bcrypt.hash(data.password, saltRounds);
@@ -14,7 +14,7 @@ export const createUser = async (data) => {
   return await newUser.save();
 };
 
-export const loginUser = async (data) => {
+const loginUser = async (data) => {
   const user = await User.findOne({ email: data.email });
   if (!user) throw new Error('User not found');
   const isMatch = await bcrypt.compare(data.password, user.password);
@@ -23,7 +23,7 @@ export const loginUser = async (data) => {
   return { token, user: { id: user._id, name: user.name, email: user.email } };
 };
 
-export const forgotPassword = async (email) => {
+const forgotPassword = async (email) => {
   const user = await User.findOne({ email });
   if (!user) throw new Error('User not found');
 
@@ -50,7 +50,7 @@ export const forgotPassword = async (email) => {
   return { message: 'Reset email sent' };
 };
 
-export const resetPassword = async (token, newPassword) => {
+const resetPassword = async (token, newPassword) => {
   const user = await User.findOne({ resetToken: token, resetTokenExpiry: { $gt: Date.now() } });
   if (!user) throw new Error('Invalid or expired token');
   user.password = await bcrypt.hash(newPassword, saltRounds);
@@ -60,6 +60,14 @@ export const resetPassword = async (token, newPassword) => {
   return { message: 'Password reset successful' };
 };
 
-export const getUser = async (id) => {
+const getUser = async (id) => {
   return await User.findById(id);
+};
+
+module.exports = {
+  createUser,
+  loginUser,
+  forgotPassword,
+  resetPassword,
+  getUser
 };

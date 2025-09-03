@@ -1,8 +1,9 @@
-import express from 'express';
-import { getHomepage } from '../controllers/homeController.js';
-import { handleCreateUser, handleLogin, handleForgotPassword, handleResetPassword, getAccount } from '../controllers/userController.js';
-import { verifyToken } from '../middleware/auth.js';
-import { delay } from '../middleware/delay.js';
+const express = require('express');
+const { getHomepage } = require('../controllers/homeController.js');
+const { handleCreateUser, handleLogin, handleForgotPassword, handleResetPassword, getAccount } = require('../controllers/userController.js');
+const { verifyToken } = require('../middleware/auth.js');
+const { delay } = require('../middleware/delay.js');
+const productController = require('../controllers/productController.js');
 
 const router = express.Router();
 
@@ -13,4 +14,10 @@ router.post('/forgot-password', handleForgotPassword);
 router.post('/reset-password/:token', handleResetPassword);
 router.get('/account', verifyToken, getAccount);
 
-export default router;
+// Product routes
+router.get('/categories', productController.getAllCategories);
+router.get('/categories/:categoryId/products', productController.getProductsByCategory);
+router.get('/products/:productId', productController.getProductById);
+router.get('/products/search', productController.searchProducts);
+
+module.exports = router;

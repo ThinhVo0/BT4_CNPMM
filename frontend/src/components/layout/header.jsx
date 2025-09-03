@@ -9,6 +9,9 @@ const Header = () => {
   return (
     <Menu mode="horizontal">
       <Menu.Item key="home"><Link to="/">Home</Link></Menu.Item>
+      {isAuthenticated && (
+        <Menu.Item key="products"><Link to="/products">Sản phẩm</Link></Menu.Item>
+      )}
       {isAuthenticated ? (
         <>
           <Menu.Item key="account"><Link to="/account">Account ({user?.name})</Link></Menu.Item>
