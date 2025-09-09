@@ -122,3 +122,6 @@ const ProductCard = ({ product, onAddToCart, onAddToWishlist }) => {
 };
 
 export default ProductCard;
+
+
+

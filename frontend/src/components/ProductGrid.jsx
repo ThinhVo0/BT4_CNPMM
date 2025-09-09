@@ -2,12 +2,15 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Row, Col, Spin, Empty, message } from 'antd';
 import ProductCard from './ProductCard';
 import productApi from '../util/productApi';
+import searchApi from '../util/searchApi';
 
 const ProductGrid = ({ 
   categoryId, 
   searchTerm = null, 
   sortBy = 'createdAt', 
   sortOrder = 'desc',
+  filters = {},
+  useElasticsearch = false,
   onAddToCart,
   onAddToWishlist 
 }) => {
@@ -40,9 +43,29 @@ const ProductGrid = ({
       setError(null);
       
       let result;
-      if (searchTerm) {
+      
+      if (useElasticsearch && (searchTerm || Object.keys(filters).some(key => filters[key] !== null))) {
+        // Sử dụng Elasticsearch search
+        const searchParams = {
+          q: searchTerm || '',
+          category: filters.category || categoryId,
+          minPrice: filters.minPrice,
+          maxPrice: filters.maxPrice,
+          minRating: filters.minRating,
+          hasDiscount: filters.hasDiscount,
+          minDiscount: filters.minDiscount,
+          sortBy,
+          sortOrder,
+          page: pageNum,
+          limit: 12
+        };
+        
+        result = await searchApi.searchProducts(searchParams);
+      } else if (searchTerm) {
+        // Sử dụng MongoDB text search
         result = await productApi.searchProducts(searchTerm, categoryId, pageNum, 12);
       } else {
+        // Sử dụng MongoDB category query
         result = await productApi.getProductsByCategory(categoryId, pageNum, 12, sortBy, sortOrder);
       }
       
@@ -63,15 +86,15 @@ const ProductGrid = ({
     } finally {
       setLoading(false);
     }
-  }, [categoryId, searchTerm, sortBy, sortOrder]);
+  }, [categoryId, searchTerm, sortBy, sortOrder, filters, useElasticsearch]);
 
-  // Reset khi thay đổi category hoặc search term
+  // Reset khi thay đổi category, search term, hoặc filters
   useEffect(() => {
     setProducts([]);
     setPage(1);
     setHasMore(true);
     loadProducts(1, false);
-  }, [categoryId, searchTerm, sortBy, sortOrder]);
+  }, [categoryId, searchTerm, sortBy, sortOrder, filters, useElasticsearch]);
 
   // Load thêm sản phẩm khi tăng page
   useEffect(() => {
@@ -138,3 +161,6 @@ const ProductGrid = ({
 };
 
 export default ProductGrid;
+
+
+

@@ -4,6 +4,7 @@ const { handleCreateUser, handleLogin, handleForgotPassword, handleResetPassword
 const { verifyToken } = require('../middleware/auth.js');
 const { delay } = require('../middleware/delay.js');
 const productController = require('../controllers/productController.js');
+const searchController = require('../controllers/searchController.js');
 
 const router = express.Router();
 
@@ -19,5 +20,14 @@ router.get('/categories', productController.getAllCategories);
 router.get('/categories/:categoryId/products', productController.getProductsByCategory);
 router.get('/products/:productId', productController.getProductById);
 router.get('/products/search', productController.searchProducts);
+
+// Search routes with Elasticsearch
+router.get('/search/products', searchController.searchProducts);
+router.post('/search/advanced', searchController.advancedSearch);
+router.get('/search/suggestions', searchController.getSuggestions);
+router.post('/search/sync-all', searchController.syncAllProducts);
+router.post('/search/sync/:productId', searchController.syncProduct);
+router.delete('/search/remove/:productId', searchController.removeProduct);
+router.get('/search/stats', searchController.getSearchStats);
 
 module.exports = router;

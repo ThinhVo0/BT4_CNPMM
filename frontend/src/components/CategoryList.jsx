@@ -64,3 +64,6 @@ const CategoryList = ({ categories, selectedCategoryId, onCategorySelect }) => {
 };
 
 export default CategoryList;
+
+
+

@@ -49,6 +49,14 @@ const productSchema = new mongoose.Schema({
   reviewCount: {
     type: Number,
     default: 0
+  },
+  viewCount: {
+    type: Number,
+    default: 0
+  },
+  isFeatured: {
+    type: Boolean,
+    default: false
   }
 }, {
   timestamps: true
@@ -57,5 +65,8 @@ const productSchema = new mongoose.Schema({
 // Index để tối ưu query
 productSchema.index({ category: 1, isActive: 1 });
 productSchema.index({ name: 'text', description: 'text' });
+productSchema.index({ viewCount: -1 });
+productSchema.index({ rating: -1 });
+productSchema.index({ price: 1 });
 
 module.exports = mongoose.model('Product', productSchema);
