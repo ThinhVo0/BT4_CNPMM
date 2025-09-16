@@ -87,7 +87,11 @@ class ProductService {
       
       let query = {
         isActive: true,
-        $text: { $search: searchTerm }
+        $or: [
+          { name: { $regex: searchTerm } },
+          { description: { $regex: searchTerm } },
+          { tags: { $in: [new RegExp(searchTerm)] } }
+        ]
       };
 
       if (categoryId) {
@@ -96,7 +100,7 @@ class ProductService {
 
       const products = await Product.find(query)
         .populate('category', 'name')
-        .sort({ score: { $meta: 'textScore' } })
+        .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
         .lean();

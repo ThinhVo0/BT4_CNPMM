@@ -34,7 +34,7 @@ const createProductIndex = async () => {
             properties: {
               name: {
                 type: 'text',
-                analyzer: 'standard',
+                analyzer: 'vietnamese_analyzer',
                 fields: {
                   keyword: {
                     type: 'keyword'
@@ -46,7 +46,7 @@ const createProductIndex = async () => {
               },
               description: {
                 type: 'text',
-                analyzer: 'standard'
+                analyzer: 'vietnamese_analyzer'
               },
               price: {
                 type: 'float'
@@ -59,7 +59,7 @@ const createProductIndex = async () => {
               },
               categoryName: {
                 type: 'text',
-                analyzer: 'standard'
+                analyzer: 'vietnamese_analyzer'
               },
               stock: {
                 type: 'integer'
@@ -81,7 +81,7 @@ const createProductIndex = async () => {
               },
               viewCount: {
                 type: 'integer',
-                default: 0
+                null_value: 0
               },
               createdAt: {
                 type: 'date'
@@ -116,11 +116,14 @@ const createProductIndex = async () => {
 // Đồng bộ dữ liệu từ MongoDB sang Elasticsearch
 const syncProductToElasticsearch = async (product) => {
   try {
+    // Tách _id ra khỏi product data
+    const { _id, ...productData } = product;
+    
     await client.index({
       index: 'products',
-      id: product._id.toString(),
+      id: _id.toString(),
       body: {
-        ...product,
+        ...productData,
         category: product.category._id.toString(),
         categoryName: product.category.name,
         discount: product.originalPrice ? 
@@ -298,7 +301,7 @@ const searchProducts = async (searchParams) => {
   }
 };
 
-// Lấy suggestions cho autocomplete
+// Lấy suggestions cho autocomplete (completion suggester)
 const getSuggestions = async (query, limit = 10) => {
   try {
     const response = await client.search({
@@ -309,7 +312,9 @@ const getSuggestions = async (query, limit = 10) => {
             prefix: query,
             completion: {
               field: 'name.suggest',
-              size: limit
+              size: limit,
+              skip_duplicates: true,
+              fuzzy: { fuzziness: 'AUTO' }
             }
           }
         }
@@ -326,6 +331,54 @@ const getSuggestions = async (query, limit = 10) => {
   }
 };
 
+// Fallback: gợi ý theo tiền tố name (có hỗ trợ filter theo category)
+const getNamePrefixSuggestions = async (query, limit = 10, category = null) => {
+  if (!query) return [];
+  try {
+    const filter = [{ term: { isActive: true } }];
+    if (category) filter.push({ term: { category: category } });
+
+    const response = await client.search({
+      index: 'products',
+      body: {
+        size: limit,
+        query: {
+          bool: {
+            must: [
+              {
+                match_phrase_prefix: {
+                  name: {
+                    query: query
+                  }
+                }
+              }
+            ],
+            filter
+          }
+        }
+      }
+    });
+
+    return response.hits.hits.map(hit => ({
+      text: hit._source.name,
+      score: hit._score
+    }));
+  } catch (error) {
+    console.error('Error getNamePrefixSuggestions:', error.message);
+    return [];
+  }
+};
+
+// Wrapper: ưu tiên completion, nếu có category thì dùng prefix; nếu rỗng thì fallback sang prefix
+const getSuggestionsSmart = async (query, limit = 10, category = null) => {
+  if (category) {
+    return await getNamePrefixSuggestions(query, limit, category);
+  }
+  const primary = await getSuggestions(query, limit);
+  if (primary && primary.length > 0) return primary;
+  return await getNamePrefixSuggestions(query, limit, null);
+};
+
 module.exports = {
   client,
   checkConnection,
@@ -333,5 +386,181 @@ module.exports = {
   syncProductToElasticsearch,
   deleteProductFromElasticsearch,
   searchProducts,
-  getSuggestions
+  getSuggestions,
+  getNamePrefixSuggestions,
+  getSuggestionsSmart
 };
+
+// Tìm kiếm nâng cao với function_score, highlight, và fuzziness toggle
+const searchProductsAdvanced = async (params) => {
+  try {
+    const {
+      query = '',
+      limit = 10,
+      fuzzy = true,
+      category = null,
+      page = 1,
+      minPrice = null,
+      maxPrice = null,
+      minRating = null,
+      hasDiscount = null,
+      minDiscount = null,
+      sortBy = 'createdAt',
+      sortOrder = 'desc'
+    } = params;
+
+    const from = Math.max(0, (page - 1) * limit);
+
+    // Build should queries so either fuzzy match or prefix can satisfy
+    const shouldQueries = [];
+    if (query) {
+      shouldQueries.push({
+        multi_match: {
+          query: query,
+          fields: ['name^5', 'description^2', 'categoryName^2'],
+          type: 'best_fields',
+          operator: 'or',
+          fuzziness: fuzzy ? 'AUTO' : 0
+        }
+      });
+    }
+
+    if (query && query.length >= 2) {
+      shouldQueries.push({
+        match_phrase_prefix: {
+          name: {
+            query: query
+          }
+        }
+      });
+    }
+
+    // Build filters
+    const filterQueries = [
+      { term: { isActive: true } },
+      ...(category ? [{ term: { category: category } }] : [])
+    ];
+
+    if (minPrice !== null || maxPrice !== null) {
+      const priceRange = {};
+      if (minPrice !== null) priceRange.gte = minPrice;
+      if (maxPrice !== null) priceRange.lte = maxPrice;
+      filterQueries.push({ range: { price: priceRange } });
+    }
+
+    if (minRating !== null) {
+      filterQueries.push({ range: { rating: { gte: minRating } } });
+    }
+
+    if (hasDiscount !== null) {
+      if (hasDiscount) {
+        filterQueries.push({ range: { discount: { gt: 0 } } });
+      } else {
+        filterQueries.push({
+          bool: {
+            should: [
+              { term: { discount: 0 } },
+              { bool: { must_not: { exists: { field: 'discount' } } } }
+            ]
+          }
+        });
+      }
+    }
+
+    if (minDiscount !== null) {
+      filterQueries.push({ range: { discount: { gte: minDiscount } } });
+    }
+
+    const functionScoreQuery = {
+      function_score: {
+        query: {
+          bool: {
+            // No must text query to avoid blocking short prefixes
+            filter: filterQueries,
+            should: shouldQueries,
+            minimum_should_match: shouldQueries.length > 0 ? 1 : 0
+          }
+        },
+        // Boost theo các chỉ số phổ biến: rating và viewCount (đóng vai trò sold_count)
+        boost_mode: 'sum',
+        score_mode: 'sum',
+        functions: [
+          {
+            field_value_factor: {
+              field: 'rating',
+              factor: 1.0,
+              modifier: 'sqrt',
+              missing: 0
+            }
+          },
+          {
+            field_value_factor: {
+              field: 'viewCount',
+              factor: 0.1,
+              modifier: 'log1p',
+              missing: 0
+            }
+          },
+          // Ưu tiên khớp chính xác theo name.keyword
+          {
+            weight: 3,
+            filter: { term: { 'name.keyword': query } }
+          }
+        ]
+      }
+    };
+
+    // Sorting mapping consistent with simple search
+    const sortField = sortBy === 'createdAt' ? 'createdAt' : 
+                      sortBy === 'price' ? 'price' :
+                      sortBy === 'name' ? 'name.keyword' :
+                      sortBy === 'rating' ? 'rating' :
+                      sortBy === 'reviewCount' ? 'reviewCount' :
+                      sortBy === 'viewCount' ? 'viewCount' :
+                      sortBy === 'discount' ? 'discount' : 'createdAt';
+
+    const response = await client.search({
+      index: 'products',
+      body: {
+        track_total_hits: true,
+        from,
+        size: limit,
+        query: functionScoreQuery,
+        sort: [ { [sortField]: { order: sortOrder } } ],
+        highlight: {
+          pre_tags: ['<em>'],
+          post_tags: ['</em>'],
+          fields: {
+            name: {},
+            description: {},
+            categoryName: {}
+          }
+        }
+      }
+    });
+
+    const items = response.hits.hits.map(hit => ({
+      id: hit._id,
+      name: hit._source.name,
+      price: hit._source.price,
+      images: hit._source.images,
+      description: hit._source.description,
+      category: hit._source.category,
+      categoryName: hit._source.categoryName,
+      rating: hit._source.rating,
+      reviewCount: hit._source.reviewCount,
+      viewCount: hit._source.viewCount,
+      originalPrice: hit._source.originalPrice,
+      score: hit._score,
+      highlight: hit.highlight || {}
+    }));
+
+    const total = response.hits.total?.value || items.length;
+    return { items, total };
+  } catch (error) {
+    console.error('Error searchProductsAdvanced:', error.message);
+    throw error;
+  }
+};
+
+module.exports.searchProductsAdvanced = searchProductsAdvanced;

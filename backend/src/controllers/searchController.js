@@ -4,40 +4,34 @@ class SearchController {
   // Tìm kiếm sản phẩm với filters
   async searchProducts(req, res) {
     try {
-      const {
-        q: query = '',
-        category = null,
+      // Hỗ trợ cả q và query
+      const { q, query: queryParam, limit = 10, fuzzy = 'true', autocomplete = 'false', category = null, page = 1,
         minPrice = null,
         maxPrice = null,
         minRating = null,
         hasDiscount = null,
         minDiscount = null,
         sortBy = 'createdAt',
-        sortOrder = 'desc',
-        page = 1,
-        limit = 12
-      } = req.query;
+        sortOrder = 'desc' } = req.query;
+      const query = (typeof q === 'string' && q.length) ? q : (queryParam || '');
 
-      const searchParams = {
+      const items = await searchService.searchProductsV2({
         query,
-        category,
-        minPrice: minPrice ? parseFloat(minPrice) : null,
-        maxPrice: maxPrice ? parseFloat(maxPrice) : null,
-        minRating: minRating ? parseFloat(minRating) : null,
-        hasDiscount: hasDiscount ? hasDiscount === 'true' : null,
-        minDiscount: minDiscount ? parseFloat(minDiscount) : null,
-        sortBy,
-        sortOrder,
+        limit: parseInt(limit),
         page: parseInt(page),
-        limit: parseInt(limit)
-      };
-
-      const result = await searchService.searchProductsWithFilters(searchParams);
-
-      res.json({
-        success: true,
-        data: result
+        fuzzy: fuzzy === 'true',
+        autocomplete: autocomplete === 'true',
+        category,
+        minPrice: minPrice !== null ? parseFloat(minPrice) : null,
+        maxPrice: maxPrice !== null ? parseFloat(maxPrice) : null,
+        minRating: minRating !== null ? parseFloat(minRating) : null,
+        hasDiscount: hasDiscount === null ? null : (hasDiscount === 'true' || hasDiscount === true || hasDiscount === '1'),
+        minDiscount: minDiscount !== null ? parseFloat(minDiscount) : null,
+        sortBy,
+        sortOrder
       });
+
+      res.json({ success: true, data: items });
     } catch (error) {
       console.error('Search products error:', error);
       res.status(500).json({

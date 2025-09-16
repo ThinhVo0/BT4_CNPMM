@@ -18,11 +18,14 @@ router.get('/account', verifyToken, getAccount);
 // Product routes
 router.get('/categories', productController.getAllCategories);
 router.get('/categories/:categoryId/products', productController.getProductsByCategory);
-router.get('/products/:productId', productController.getProductById);
-router.get('/products/search', productController.searchProducts);
+// Search routes with Elasticsearch (new) - đặt TRƯỚC route động :productId
+router.get('/products/search', searchController.searchProducts);
 
-// Search routes with Elasticsearch
-router.get('/search/products', searchController.searchProducts);
+// Legacy search (MongoDB text search)
+router.get('/products/search-legacy', productController.searchProducts);
+
+// Đặt sau cùng để tránh nuốt các route tĩnh như /products/search
+router.get('/products/:productId', productController.getProductById);
 router.post('/search/advanced', searchController.advancedSearch);
 router.get('/search/suggestions', searchController.getSuggestions);
 router.post('/search/sync-all', searchController.syncAllProducts);

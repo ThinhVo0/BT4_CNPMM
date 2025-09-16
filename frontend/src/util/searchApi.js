@@ -13,7 +13,7 @@ class SearchApi {
         }
       });
 
-      const response = await api.get(`/search/products?${queryParams.toString()}`);
+      const response = await api.get(`/products/search?${queryParams.toString()}`);
       return response.data;
     } catch (error) {
       console.error('Search products error:', error);

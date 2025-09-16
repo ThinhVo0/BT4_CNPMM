@@ -16,7 +16,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
 configViewEngine(app);
-app.use('/api', apiRoutes);
+app.use('/v1/api', apiRoutes);
 
 (async () => {
   try {

@@ -126,8 +126,13 @@ const Products = () => {
 
   const handleFiltersChange = (newFilters) => {
     setFilters(newFilters);
-    setUseSearchResults(false);
-    setSearchResults(null);
+    // Tự động search khi có filters
+    if (Object.values(newFilters).some(value => value !== null && value !== '')) {
+      handleSearch();
+    } else {
+      setUseSearchResults(false);
+      setSearchResults(null);
+    }
   };
 
   const handleProductClick = (product) => {

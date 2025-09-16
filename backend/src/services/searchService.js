@@ -2,9 +2,11 @@ const Product = require('../models/product');
 const Category = require('../models/category');
 const { 
   searchProducts, 
+  searchProductsAdvanced,
   syncProductToElasticsearch, 
   deleteProductFromElasticsearch,
-  getSuggestions 
+  getSuggestions,
+  getSuggestionsSmart
 } = require('../config/elasticsearch');
 
 class SearchService {
@@ -38,10 +40,81 @@ class SearchService {
     }
   }
 
+  // Tìm kiếm nâng cao theo yêu cầu API mới
+  async searchProductsV2({ 
+    query = '', 
+    limit = 10, 
+    fuzzy = true, 
+    autocomplete = false, 
+    category = null, 
+    page = 1,
+    minPrice = null,
+    maxPrice = null,
+    minRating = null,
+    hasDiscount = null,
+    minDiscount = null,
+    sortBy = 'createdAt',
+    sortOrder = 'desc'
+  }) {
+    try {
+      if (autocomplete) {
+        // Sử dụng smart suggester: completion ưu tiên, fallback prefix, hỗ trợ category
+        const suggestions = await getSuggestionsSmart(query, limit, category);
+        return suggestions.map(s => ({ id: undefined, name: s.text, price: undefined, score: s.score, highlight: {} }));
+      }
+
+      const { items, total } = await searchProductsAdvanced({ 
+        query, 
+        limit, 
+        fuzzy, 
+        category, 
+        page,
+        minPrice,
+        maxPrice,
+        minRating,
+        hasDiscount,
+        minDiscount,
+        sortBy,
+        sortOrder
+      });
+      // Chuẩn hóa response cho frontend SearchResults.jsx
+      const products = items.map(p => ({
+        _id: p.id,
+        name: p.name,
+        price: p.price,
+        images: p.images,
+        description: p.description,
+        category: { name: p.categoryName },
+        rating: p.rating,
+        reviewCount: p.reviewCount,
+        viewCount: p.viewCount,
+        originalPrice: p.originalPrice,
+        _score: p.score,
+        highlight: p.highlight
+      }));
+      const totalPages = Math.ceil(total / limit);
+      return {
+        products,
+        pagination: {
+          currentPage: page,
+          totalPages,
+          total,
+          limit,
+          hasNext: page < totalPages,
+          hasPrev: page > 1
+        }
+      };
+    } catch (error) {
+      console.error('Search V2 service error:', error);
+      throw error;
+    }
+  }
+
   // Lấy suggestions cho autocomplete
   async getProductSuggestions(query, limit = 10) {
     try {
-      return await getSuggestions(query, limit);
+      // Dùng smart để tự fallback khi completion chưa sẵn sàng
+      return await getSuggestionsSmart(query, limit, null);
     } catch (error) {
       console.error('Suggestions service error:', error);
       return [];

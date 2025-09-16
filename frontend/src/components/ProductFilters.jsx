@@ -199,9 +199,9 @@ const ProductFilters = ({
                 <Slider
                   range
                   min={0}
-                  max={10000000}
+                  max={100000000}
                   step={100000}
-                  value={[localFilters.minPrice || 0, localFilters.maxPrice || 10000000]}
+                  value={[localFilters.minPrice || 0, localFilters.maxPrice || 100000000]}
                   onChange={(value) => {
                     handleFilterChange('minPrice', value[0]);
                     handleFilterChange('maxPrice', value[1]);
@@ -212,7 +212,7 @@ const ProductFilters = ({
                 />
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#666' }}>
                   <span>{localFilters.minPrice?.toLocaleString('vi-VN') || '0'} VNĐ</span>
-                  <span>{localFilters.maxPrice?.toLocaleString('vi-VN') || '10,000,000'} VNĐ</span>
+                  <span>{localFilters.maxPrice?.toLocaleString('vi-VN') || '100,000,000'} VNĐ</span>
                 </div>
               </div>
             </Col>
