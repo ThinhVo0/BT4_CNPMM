@@ -1,6 +1,8 @@
 import React from 'react';
 import { Card, Row, Col, Typography, Tag, Space, Statistic } from 'antd';
-import { EyeOutlined, StarOutlined, ShoppingCartOutlined } from '@ant-design/icons';
+import { EyeOutlined, StarOutlined, ShoppingCartOutlined, HeartFilled } from '@ant-design/icons';
+import { useContext } from 'react';
+import { WishlistContext } from './context/wishlist.context.jsx';
 
 const { Title, Text } = Typography;
 
@@ -12,6 +14,7 @@ const SearchResults = ({
   onProductClick 
 }) => {
   const { products = [], pagination = {} } = results;
+  const { items: wishlistItems } = useContext(WishlistContext);
 
   if (loading) {
     return (
@@ -133,7 +136,7 @@ const SearchResults = ({
                   />,
                   <StarOutlined 
                     key="wishlist" 
-                    onClick={() => onAddToWishlist && onAddToWishlist(product)}
+                    onClick={(e) => { e.stopPropagation(); onAddToWishlist && onAddToWishlist(product); }}
                   />,
                   <EyeOutlined 
                     key="view" 

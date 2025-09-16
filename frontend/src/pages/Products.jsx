@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Layout, Row, Col, Typography, message, Spin } from 'antd';
+import { Layout, Row, Col, Typography, message, Spin, Breadcrumb, Button } from 'antd';
+import { ArrowLeftOutlined, HomeOutlined } from '@ant-design/icons';
 import { useParams, useSearchParams } from 'react-router-dom';
 import CategoryList from '../components/CategoryList';
 import ProductGrid from '../components/ProductGrid';
@@ -7,6 +8,9 @@ import ProductFilters from '../components/ProductFilters';
 import SearchResults from '../components/SearchResults';
 import productApi from '../util/productApi';
 import searchApi from '../util/searchApi';
+import { useContext } from 'react';
+import { CartContext } from '../components/context/cart.context.jsx';
+import { WishlistContext } from '../components/context/wishlist.context.jsx';
 
 const { Content } = Layout;
 const { Title } = Typography;
@@ -140,14 +144,17 @@ const Products = () => {
     message.info(`Xem chi tiết sản phẩm: ${product.name}`);
   };
 
+  const { addToCart } = useContext(CartContext);
+  const { toggleWishlist } = useContext(WishlistContext);
+
   const handleAddToCart = (product) => {
+    addToCart(product);
     message.success(`Đã thêm ${product.name} vào giỏ hàng`);
-    // TODO: Implement cart functionality
   };
 
   const handleAddToWishlist = (product) => {
-    message.success(`Đã thêm ${product.name} vào yêu thích`);
-    // TODO: Implement wishlist functionality
+    toggleWishlist(product);
+    message.success(`Đã cập nhật yêu thích: ${product.name}`);
   };
 
   if (loading) {
@@ -176,6 +183,14 @@ const Products = () => {
             {selectedCategory ? (
               <>
                 <div style={{ marginBottom: 16 }}>
+                  <Breadcrumb>
+                    <Breadcrumb.Item href="/"><HomeOutlined /></Breadcrumb.Item>
+                    <Breadcrumb.Item>Danh mục</Breadcrumb.Item>
+                    <Breadcrumb.Item>{selectedCategory.name}</Breadcrumb.Item>
+                  </Breadcrumb>
+                  <div style={{ margin: '8px 0' }}>
+                    <Button icon={<ArrowLeftOutlined />} onClick={() => window.history.back()}>Quay lại</Button>
+                  </div>
                   <Title level={3} style={{ margin: 0 }}>
                     {selectedCategory.name}
                   </Title>

@@ -11,22 +11,22 @@ const categories = [
   {
     name: 'Điện thoại',
     description: 'Các loại điện thoại di động',
-    image: 'https://via.placeholder.com/300x200?text=Phone'
+    image: 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=600&auto=format&fit=crop'
   },
   {
     name: 'Laptop',
     description: 'Máy tính xách tay các loại',
-    image: 'https://via.placeholder.com/300x200?text=Laptop'
+    image: 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=600&auto=format&fit=crop'
   },
   {
     name: 'Máy tính bảng',
     description: 'iPad và các loại máy tính bảng khác',
-    image: 'https://via.placeholder.com/300x200?text=Tablet'
+    image: 'https://images.unsplash.com/photo-1510552776732-03e61cf4b144?w=600&auto=format&fit=crop'
   },
   {
     name: 'Phụ kiện',
     description: 'Phụ kiện điện tử các loại',
-    image: 'https://via.placeholder.com/300x200?text=Accessories'
+    image: 'https://images.unsplash.com/photo-1516715094483-75da7dee9756?w=600&auto=format&fit=crop'
   }
 ];
 
@@ -109,7 +109,7 @@ function generateProductsForCategory(categoryName) {
       description: `${pick.brand} ${pick.model} chính hãng, hiệu năng ổn định, bảo hành 12 tháng`,
       price: basePrice,
       originalPrice: original,
-      images: [`https://via.placeholder.com/400x400?text=${encodeURIComponent(pick.brand + ' ' + pick.model)}`],
+      images: [`https://picsum.photos/seed/${encodeURIComponent(pick.brand + '-' + pick.model)}/600/600`],
       stock: 10 + Math.floor(Math.random() * 100),
       tags: [categoryName.toLowerCase(), pick.brand.toLowerCase()],
       rating: Math.round((3 + Math.random() * 2) * 10) / 10,

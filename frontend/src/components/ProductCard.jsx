@@ -1,10 +1,17 @@
 import React from 'react';
-import { Card, Tag, Rate, Space, Typography } from 'antd';
+import { Card, Tag, Rate, Space, Typography, Button } from 'antd';
 import { ShoppingCartOutlined, HeartOutlined } from '@ant-design/icons';
+import { useContext } from 'react';
+import { WishlistContext } from './context/wishlist.context.jsx';
 
 const { Text, Title } = Typography;
 
+import { useNavigate } from 'react-router-dom';
+
 const ProductCard = ({ product, onAddToCart, onAddToWishlist }) => {
+  const navigate = useNavigate();
+  const { items: wishlistItems } = useContext(WishlistContext);
+  const wished = wishlistItems.some(w => w._id === product._id);
   const formatPrice = (price) => {
     return new Intl.NumberFormat('vi-VN', {
       style: 'currency',
@@ -20,52 +27,20 @@ const ProductCard = ({ product, onAddToCart, onAddToWishlist }) => {
   const discount = calculateDiscount(product.originalPrice, product.price);
 
   return (
-    <Card
-      hoverable
-      cover={
-        <div style={{ position: 'relative' }}>
-          <img
-            alt={product.name}
-            src={product.images?.[0] || 'https://via.placeholder.com/300x300?text=No+Image'}
-            style={{ 
-              height: 200, 
-              objectFit: 'cover',
-              width: '100%'
-            }}
-          />
-          {discount > 0 && (
-            <div
-              style={{
-                position: 'absolute',
-                top: 8,
-                right: 8,
-                background: '#ff4d4f',
-                color: 'white',
-                padding: '4px 8px',
-                borderRadius: '4px',
-                fontSize: '12px',
-                fontWeight: 'bold'
-              }}
-            >
-              -{discount}%
-            </div>
-          )}
-        </div>
-      }
-      actions={[
-        <ShoppingCartOutlined 
-          key="cart" 
-          onClick={() => onAddToCart?.(product)}
-          style={{ fontSize: '18px' }}
-        />,
-        <HeartOutlined 
-          key="wishlist" 
-          onClick={() => onAddToWishlist?.(product)}
-          style={{ fontSize: '18px' }}
+    <Card hoverable style={{ height: '100%', overflow: 'hidden' }} onClick={() => navigate(`/products/${product._id}`)}>
+      <div style={{ position: 'relative' }}>
+        <img
+          alt={product.name}
+          src={product.images?.[0] || `https://picsum.photos/seed/${encodeURIComponent(product.name)}/400/400`}
+          onError={(e) => { e.currentTarget.src = 'https://picsum.photos/400/400?blur=2'; }}
+          style={{ height: 200, objectFit: 'cover', width: '100%', borderRadius: 8 }}
         />
-      ]}
-      style={{ height: '100%' }}
-    >
+        {discount > 0 && (
+          <div style={{ position: 'absolute', top: 8, left: 8, background: '#ff4d4f', color: 'white', padding: '4px 8px', borderRadius: 6, fontSize: 12, fontWeight: 600 }}>
+            -{discount}%
+          </div>
+        )}
+      </div>
       <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
         <Title level={5} style={{ marginBottom: 8, lineHeight: 1.4 }}>
           {product.name}
@@ -109,10 +84,14 @@ const ProductCard = ({ product, onAddToCart, onAddToWishlist }) => {
               ))}
             </div>
 
-            <div>
-              <Text type="secondary" style={{ fontSize: '12px' }}>
-                Còn lại: {product.stock} sản phẩm
-              </Text>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Text type="secondary" style={{ fontSize: '12px' }}>Còn: {product.stock}</Text>
+              <Space>
+                <Button size="small" icon={<HeartOutlined style={{ color: wished ? '#f5222d' : undefined }} />} onClick={(e) => { e.stopPropagation(); onAddToWishlist?.(product); }} />
+                <Button type="primary" size="small" icon={<ShoppingCartOutlined />} onClick={(e) => { e.stopPropagation(); onAddToCart?.(product); }}>
+                  Thêm
+                </Button>
+              </Space>
             </div>
           </Space>
         </div>
@@ -122,6 +101,7 @@ const ProductCard = ({ product, onAddToCart, onAddToWishlist }) => {
 };
 
 export default ProductCard;
+
 
 
 
