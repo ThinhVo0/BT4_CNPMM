@@ -1,16 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense, useContext } from 'react';
 import { Layout, Row, Col, Typography, message, Spin, Breadcrumb, Button } from 'antd';
 import { ArrowLeftOutlined, HomeOutlined } from '@ant-design/icons';
 import { useParams, useSearchParams } from 'react-router-dom';
-import CategoryList from '../components/CategoryList';
-import ProductGrid from '../components/ProductGrid';
-import ProductFilters from '../components/ProductFilters';
-import SearchResults from '../components/SearchResults';
 import productApi from '../util/productApi';
 import searchApi from '../util/searchApi';
-import { useContext } from 'react';
 import { CartContext } from '../components/context/cart.context.jsx';
 import { WishlistContext } from '../components/context/wishlist.context.jsx';
+
+// Lazy load heavy components
+const CategoryList = React.lazy(() => import('../components/CategoryList'));
+const ProductGrid = React.lazy(() => import('../components/ProductGrid'));
+const ProductFilters = React.lazy(() => import('../components/ProductFilters'));
+const SearchResults = React.lazy(() => import('../components/SearchResults'));
 
 const { Content } = Layout;
 const { Title } = Typography;
@@ -165,17 +166,32 @@ const Products = () => {
     );
   }
 
+  // Component loader for Suspense fallback
+  const ComponentLoader = () => (
+    <div style={{ 
+      display: 'flex', 
+      justifyContent: 'center', 
+      alignItems: 'center', 
+      padding: '20px',
+      minHeight: '200px'
+    }}>
+      <Spin size="large" />
+    </div>
+  );
+
   return (
     <Layout style={{ minHeight: '100vh', background: '#f5f5f5' }}>
       <Content style={{ padding: '24px' }}>
         <Row gutter={[24, 24]}>
           {/* Sidebar - Categories */}
           <Col xs={24} lg={6}>
-            <CategoryList
-              categories={categories}
-              selectedCategoryId={selectedCategory?._id}
-              onCategorySelect={handleCategorySelect}
-            />
+            <Suspense fallback={<ComponentLoader />}>
+              <CategoryList
+                categories={categories}
+                selectedCategoryId={selectedCategory?._id}
+                onCategorySelect={handleCategorySelect}
+              />
+            </Suspense>
           </Col>
 
           {/* Main Content - Products */}
@@ -199,40 +215,44 @@ const Products = () => {
                   </Title>
                 </div>
 
-                <ProductFilters
-                  searchTerm={searchTerm}
-                  onSearchChange={setSearchTerm}
-                  sortBy={sortBy}
-                  sortOrder={sortOrder}
-                  onSortChange={setSortBy}
-                  onSortOrderChange={setSortOrder}
-                  filters={filters}
-                  onFiltersChange={handleFiltersChange}
-                  categories={categories}
-                  onSearch={handleSearch}
-                  loading={searchLoading}
-                />
-
-                {useSearchResults ? (
-                  <SearchResults
-                    results={searchResults}
-                    loading={searchLoading}
-                    onAddToCart={handleAddToCart}
-                    onAddToWishlist={handleAddToWishlist}
-                    onProductClick={handleProductClick}
-                  />
-                ) : (
-                  <ProductGrid
-                    categoryId={selectedCategory._id}
-                    searchTerm={searchTerm || null}
+                <Suspense fallback={<ComponentLoader />}>
+                  <ProductFilters
+                    searchTerm={searchTerm}
+                    onSearchChange={setSearchTerm}
                     sortBy={sortBy}
                     sortOrder={sortOrder}
+                    onSortChange={setSortBy}
+                    onSortOrderChange={setSortOrder}
                     filters={filters}
-                    useElasticsearch={false}
-                    onAddToCart={handleAddToCart}
-                    onAddToWishlist={handleAddToWishlist}
+                    onFiltersChange={handleFiltersChange}
+                    categories={categories}
+                    onSearch={handleSearch}
+                    loading={searchLoading}
                   />
-                )}
+                </Suspense>
+
+                <Suspense fallback={<ComponentLoader />}>
+                  {useSearchResults ? (
+                    <SearchResults
+                      results={searchResults}
+                      loading={searchLoading}
+                      onAddToCart={handleAddToCart}
+                      onAddToWishlist={handleAddToWishlist}
+                      onProductClick={handleProductClick}
+                    />
+                  ) : (
+                    <ProductGrid
+                      categoryId={selectedCategory._id}
+                      searchTerm={searchTerm || null}
+                      sortBy={sortBy}
+                      sortOrder={sortOrder}
+                      filters={filters}
+                      useElasticsearch={false}
+                      onAddToCart={handleAddToCart}
+                      onAddToWishlist={handleAddToWishlist}
+                    />
+                  )}
+                </Suspense>
               </>
             ) : (
               <div style={{ textAlign: 'center', padding: '50px' }}>
